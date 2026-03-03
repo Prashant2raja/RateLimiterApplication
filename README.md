@@ -94,3 +94,99 @@ If limit exceeded:
 ---
 
 # 📁 Project Structure
+
+src
+├── main
+│ └── java
+│ └── com.demo
+│ ├── controller
+│ ├── service
+│ ├── model
+│ ├── config
+│ └── dto
+│
+└── test
+└── java
+└── com.demo.service
+└── RateLimitServiceTest.java
+
+
+---
+
+# ▶️ How to Run
+
+Build the project:
+
+
+mvn clean install
+
+
+Run the application:
+
+
+mvn spring-boot:run
+
+
+Application runs on:
+
+
+http://localhost:8080
+
+
+---
+
+# 🧪 API Usage
+
+## Check Rate Limit
+
+**POST**
+
+
+/api/rate-limit/check
+
+
+Body:
+
+```json
+{
+  "identifier": "user1",
+  "endpoint": "/api/search"
+}
+Reset Rate Limit
+
+POST
+
+/api/rate-limit/reset
+
+Body:
+
+{
+  "identifier": "user1"
+}
+🧪 Run Tests
+mvn test
+
+✔ 10 Unit Test Cases Implemented
+✔ Rule override tested
+✔ Tier fallback tested
+✔ Endpoint isolation tested
+✔ Reset functionality tested
+✔ Rule priority handling tested
+
+⚙️ Performance Notes
+
+O(1) lookup using ConcurrentHashMap
+
+Thread-safe TokenBucket
+
+Endpoint-based bucket isolation
+
+Lightweight and extensible
+
+Ready for Redis-based distributed extension (Phase 3)
+
+📌 Status
+
+✔ Phase 1 Completed
+✔ Phase 2 Completed
+
