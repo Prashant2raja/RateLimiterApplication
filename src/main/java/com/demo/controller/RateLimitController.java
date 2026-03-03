@@ -15,18 +15,20 @@ public class RateLimitController {
     public RateLimitController(RateLimitService service) {
         this.service = service;
     }
+@PostMapping("/check")
+public ResponseEntity<String> checkLimit(@RequestBody RateLimitRequest request) {
 
-    @PostMapping("/check")
-    public ResponseEntity<String> checkLimit(@RequestBody RateLimitRequest request) {
+    boolean allowed = service.checkLimit(
+            request.getIdentifier(),
+            request.getEndpoint()
+    );
 
-        boolean allowed = service.checkLimit(request.getIdentifier());
-
-        if (!allowed) {
-            return ResponseEntity.status(429).body("Too Many Requests");
-        }
-
-        return ResponseEntity.ok("Request Allowed");
+    if (!allowed) {
+        return ResponseEntity.status(429).body("Too Many Requests");
     }
+
+    return ResponseEntity.ok("Request Allowed");
+}
 
     @PostMapping("/reset")
     public ResponseEntity<String> reset(@RequestBody RateLimitRequest request) {

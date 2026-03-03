@@ -1,9 +1,11 @@
 package com.demo.dto;
 
-public class RateLimitRequest {
+import com.demo.model.Tier;
+
+public class TierAssignRequest {
 
     private String identifier;
-    private String endpoint; 
+    private Tier tier;
 
     public String getIdentifier() {
         return identifier;
@@ -13,11 +15,11 @@ public class RateLimitRequest {
         this.identifier = identifier;
     }
 
-    public String getEndpoint() {
-        return endpoint;
+    public Tier getTier() {
+        return tier;
     }
 
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
+    public void setTier(Tier tier) {
+        this.tier = tier;
     }
 }

@@ -3,11 +3,11 @@ package com.demo.model;
 public class TokenBucket {
 
     private final long capacity;
-    private long tokens;
-    private final long refillRate; 
+    private double tokens;
+    private final double refillRate; 
     private long lastRefillTime;
 
-    public TokenBucket(long capacity, long refillRate) {
+    public TokenBucket(long capacity, double refillRate) {
         this.capacity = capacity;
         this.tokens = capacity;
         this.refillRate = refillRate;
@@ -17,26 +17,37 @@ public class TokenBucket {
     public synchronized boolean tryConsume() {
         refill();
 
-        if (tokens > 0) {
-            tokens--;
+        if (tokens >= 1) {
+            tokens -= 1;
             return true;
         }
         return false;
     }
 
     private void refill() {
-        long now = System.currentTimeMillis();
-        long timePassed = now - lastRefillTime;
-
-        long tokensToAdd = (timePassed / 1000) * refillRate;
-
-        if (tokensToAdd > 0) {
-            tokens = Math.min(capacity, tokens + tokensToAdd);
-            lastRefillTime = now;
+        if (refillRate <= 0) {
+            return; // no refill if rate is 0
         }
+
+        long now = System.currentTimeMillis();
+        double secondsPassed = (now - lastRefillTime) / 1000.0;
+
+        if (secondsPassed <= 0) {
+            return;
+        }
+
+        double tokensToAdd = secondsPassed * refillRate;
+
+        tokens = Math.min(capacity, tokens + tokensToAdd);
+        lastRefillTime = now;
     }
 
-    public long getTokens() {
-        return tokens;
+    public synchronized long getRemainingTokens() {
+        refill();
+        return (long) tokens;
+    }
+
+    public long getCapacity() {
+        return capacity;
     }
 }

@@ -1,30 +1,23 @@
 package com.demo.service;
 
+import com.demo.model.TokenBucket;
+import org.springframework.stereotype.Service;
+
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.demo.model.TokenBucket;
-
+@Service
 public class TokenBucketManager {
 
     private final ConcurrentHashMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
 
-    private final long capacity = 20;      
-    private final long refillRate = 0;     
+    
+    public TokenBucket getBucket(String identifier, long capacity, double refillRate) {
 
-    public boolean allowRequest(String identifier) {
-
-        // Create bucket if not exists
-        buckets.putIfAbsent(identifier, new TokenBucket(capacity, refillRate));
-
-        // Try consuming token
-        return buckets.get(identifier).tryConsume();
+        return buckets.computeIfAbsent(identifier,
+                key -> new TokenBucket(capacity, refillRate));
     }
 
     public void reset(String identifier) {
         buckets.remove(identifier);
-    }
-
-    public TokenBucket getBucket(String identifier) {
-        return buckets.get(identifier);
     }
 }
