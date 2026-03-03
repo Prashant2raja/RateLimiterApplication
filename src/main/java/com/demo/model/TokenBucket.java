@@ -4,7 +4,7 @@ public class TokenBucket {
 
     private final long capacity;
     private double tokens;
-    private final double refillRate; 
+    private final double refillRate; // tokens per second
     private long lastRefillTime;
 
     public TokenBucket(long capacity, double refillRate) {
@@ -25,21 +25,19 @@ public class TokenBucket {
     }
 
     private void refill() {
+
         if (refillRate <= 0) {
-            return; // no refill if rate is 0
+            return; // No refill if refillRate is 0
         }
 
         long now = System.currentTimeMillis();
         double secondsPassed = (now - lastRefillTime) / 1000.0;
 
-        if (secondsPassed <= 0) {
-            return;
+        if (secondsPassed > 0) {
+            double tokensToAdd = secondsPassed * refillRate;
+            tokens = Math.min(capacity, tokens + tokensToAdd);
+            lastRefillTime = now;
         }
-
-        double tokensToAdd = secondsPassed * refillRate;
-
-        tokens = Math.min(capacity, tokens + tokensToAdd);
-        lastRefillTime = now;
     }
 
     public synchronized long getRemainingTokens() {
@@ -49,5 +47,17 @@ public class TokenBucket {
 
     public long getCapacity() {
         return capacity;
+    }
+
+    public synchronized long getResetTimeSeconds() {
+
+        if (tokens >= 1 || refillRate <= 0) {
+            return System.currentTimeMillis() / 1000;
+        }
+
+        double tokensNeeded = 1 - tokens;
+        long secondsUntilNextToken = (long) Math.ceil(tokensNeeded / refillRate);
+
+        return (System.currentTimeMillis() / 1000) + secondsUntilNextToken;
     }
 }

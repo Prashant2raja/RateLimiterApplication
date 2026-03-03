@@ -19,26 +19,28 @@ public class RateLimitService {
         this.ruleEngineService = ruleEngineService;
     }
 
-    public boolean checkLimit(String identifier, String endpoint) {
+    public RateLimitResult checkLimit(String identifier, String endpoint) {
 
+        // 1️⃣ Get user tier
         Tier tier = tierService.getTier(identifier);
 
+        // 2️⃣ Check rule override
         RateLimitRule rule =
                 ruleEngineService.findApplicableRule(identifier, tier, endpoint);
 
         long capacity;
-        double refillRate;
+        double refillRate;   // ✅ Use double everywhere
 
         if (rule != null) {
             capacity = rule.getCapacity();
-            refillRate = rule.getRefillRate();
+            refillRate = rule.getRefillRate();   // long → auto converts to double
         } else {
             TierConfig config = TierConfiguration.getConfig(tier);
             capacity = config.getCapacity();
             refillRate = config.getRefillRate();
         }
 
-        // 3️⃣ Important: use identifier + endpoint as key
+        // 3️⃣ Endpoint-based key
         String bucketKey = identifier + ":" + endpoint;
 
         TokenBucket bucket = tokenBucketManager.getBucket(
@@ -47,10 +49,19 @@ public class RateLimitService {
                 refillRate
         );
 
-        return bucket.tryConsume();
+        // 4️⃣ Try consume
+        boolean allowed = bucket.tryConsume();
+
+        // 5️⃣ Return professional result
+        return new RateLimitResult(
+                allowed,
+                bucket.getRemainingTokens(),
+                bucket.getCapacity(),
+                bucket.getResetTimeSeconds()
+        );
     }
 
     public void resetLimit(String identifier) {
-        tokenBucketManager.reset(identifier);
+        tokenBucketManager.resetAllForUser(identifier);
     }
 }

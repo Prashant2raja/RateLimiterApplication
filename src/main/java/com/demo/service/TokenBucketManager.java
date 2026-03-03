@@ -10,14 +10,17 @@ public class TokenBucketManager {
 
     private final ConcurrentHashMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
 
-    
-    public TokenBucket getBucket(String identifier, long capacity, double refillRate) {
+    public TokenBucket getBucket(String key, long capacity, double refillRate) {
 
-        return buckets.computeIfAbsent(identifier,
-                key -> new TokenBucket(capacity, refillRate));
+        return buckets.computeIfAbsent(key,
+                k -> new TokenBucket(capacity, refillRate));
     }
 
-    public void reset(String identifier) {
-        buckets.remove(identifier);
+    public void reset(String key) {
+        buckets.remove(key);
+    }
+
+    public void resetAllForUser(String identifier) {
+        buckets.keySet().removeIf(key -> key.startsWith(identifier + ":"));
     }
 }

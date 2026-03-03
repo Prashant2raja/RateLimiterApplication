@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.demo.dto.RateLimitRequest;
+import com.demo.model.RateLimitResult;
 import com.demo.service.RateLimitService;
 
 @RestController
@@ -15,20 +16,29 @@ public class RateLimitController {
     public RateLimitController(RateLimitService service) {
         this.service = service;
     }
-@PostMapping("/check")
-public ResponseEntity<String> checkLimit(@RequestBody RateLimitRequest request) {
 
-    boolean allowed = service.checkLimit(
-            request.getIdentifier(),
-            request.getEndpoint()
-    );
+    @PostMapping("/check")
+    public ResponseEntity<String> checkLimit(@RequestBody RateLimitRequest request) {
 
-    if (!allowed) {
-        return ResponseEntity.status(429).body("Too Many Requests");
+        RateLimitResult result = service.checkLimit(
+                request.getIdentifier(),
+                request.getEndpoint()
+        );
+
+        if (!result.isAllowed()) {
+            return ResponseEntity.status(429)
+                    .header("X-RateLimit-Limit", String.valueOf(result.getCapacity()))
+                    .header("X-RateLimit-Remaining", "0")
+                    .header("X-RateLimit-Reset", String.valueOf(result.getResetTime()))
+                    .body("Too Many Requests");
+        }
+
+        return ResponseEntity.ok()
+                .header("X-RateLimit-Limit", String.valueOf(result.getCapacity()))
+                .header("X-RateLimit-Remaining", String.valueOf(result.getRemainingTokens()))
+                .header("X-RateLimit-Reset", String.valueOf(result.getResetTime()))
+                .body("Request Allowed");
     }
-
-    return ResponseEntity.ok("Request Allowed");
-}
 
     @PostMapping("/reset")
     public ResponseEntity<String> reset(@RequestBody RateLimitRequest request) {
