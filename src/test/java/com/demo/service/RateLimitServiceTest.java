@@ -6,9 +6,11 @@ import com.demo.model.Tier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RateLimitServiceTest {
+class RateLimitServiceTest {
 
     private TokenBucketManager manager;
     private TierService tierService;
@@ -20,182 +22,117 @@ public class RateLimitServiceTest {
         manager = new TokenBucketManager();
         tierService = new TierService();
         ruleEngine = new RuleEngineService();
-        service = new RateLimitService(manager, tierService, ruleEngine);
+        service = new RateLimitService(manager, tierService, ruleEngine, new PerformanceMetricsService());
     }
 
-    // 1️⃣ Basic request allowed
     @Test
-    void testBasicRequestAllowed() {
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+    void basicRequestAllowed() {
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertTrue(result.isAllowed());
     }
 
-    // 2️⃣ Rule blocks after capacity
     @Test
-    void testRuleBlocksAfterLimit() {
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 2, 0, 1)
-        );
+    void ruleBlocksAfterLimit() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 2, 0, 1));
 
         service.checkLimit("user1", "/api/search");
         service.checkLimit("user1", "/api/search");
 
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertFalse(result.isAllowed());
     }
 
-    // 3️⃣ Reset works
     @Test
-    void testResetWorks() {
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 1, 0, 1)
-        );
-
+    void resetWorks() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 1, 0, 1));
         service.checkLimit("user1", "/api/search");
 
         service.resetLimit("user1");
 
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertTrue(result.isAllowed());
     }
 
-    // 4️⃣ Endpoint isolation
     @Test
-    void testEndpointIsolation() {
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 1, 0, 1)
-        );
-
+    void endpointIsolationWorks() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 1, 0, 1));
         service.checkLimit("user1", "/api/search");
 
-        RateLimitResult blocked =
-                service.checkLimit("user1", "/api/search");
-
-        RateLimitResult otherEndpoint =
-                service.checkLimit("user1", "/api/other");
+        RateLimitResult blocked = service.checkLimit("user1", "/api/search");
+        RateLimitResult otherEndpoint = service.checkLimit("user1", "/api/other");
 
         assertFalse(blocked.isAllowed());
         assertTrue(otherEndpoint.isAllowed());
     }
 
-    // 5️⃣ Different users isolated
     @Test
-    void testDifferentUsersIsolation() {
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 1, 0, 1)
-        );
-
+    void differentUsersStayIsolated() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 1, 0, 1));
         service.checkLimit("user1", "/api/search");
 
-        RateLimitResult user1Blocked =
-                service.checkLimit("user1", "/api/search");
-
-        RateLimitResult user2Allowed =
-                service.checkLimit("user2", "/api/search");
+        RateLimitResult user1Blocked = service.checkLimit("user1", "/api/search");
+        RateLimitResult user2Allowed = service.checkLimit("user2", "/api/search");
 
         assertFalse(user1Blocked.isAllowed());
         assertTrue(user2Allowed.isAllowed());
     }
 
-    // 6️⃣ Tier fallback works
     @Test
-    void testTierFallback() {
-
+    void tierFallbackWorks() {
         tierService.assignTier("user1", Tier.PRO);
-
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertTrue(result.isAllowed());
     }
 
-    // 7️⃣ Remaining tokens decrease
     @Test
-    void testRemainingTokensDecrease() {
+    void remainingTokensDecrease() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 5, 0, 1));
 
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 5, 0, 1)
-        );
+        RateLimitResult first = service.checkLimit("user1", "/api/search");
+        RateLimitResult second = service.checkLimit("user1", "/api/search");
 
-        RateLimitResult first =
-                service.checkLimit("user1", "/api/search");
-
-        RateLimitResult second =
-                service.checkLimit("user1", "/api/search");
-
-        assertTrue(second.getRemainingTokens()
-                < first.getRemainingTokens());
+        assertTrue(second.getRemainingTokens() < first.getRemainingTokens());
     }
 
-    // 8️⃣ Capacity applied correctly
     @Test
-    void testCapacityApplied() {
+    void capacityAppliedCorrectly() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 4, 0, 1));
 
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 4, 0, 1)
-        );
-
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertEquals(4, result.getCapacity());
     }
 
-    // 9️⃣ Rule priority respected
     @Test
-    void testRulePriority() {
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 10, 0, 2)
-        );
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 2, 0, 1)
-        );
+    void rulePriorityRespected() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 10, 0, 2));
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 2, 0, 1));
 
         service.checkLimit("user1", "/api/search");
         service.checkLimit("user1", "/api/search");
 
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertFalse(result.isAllowed());
     }
 
-    // 🔟 Reset clears all endpoints
     @Test
-    void testResetClearsAllEndpoints() {
-
-        ruleEngine.addRule(
-                new RateLimitRule("user1", null,
-                        "/api/search", 1, 0, 1)
-        );
-
+    void resetClearsAllEndpoints() {
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/search", 1, 0, 1));
         service.checkLimit("user1", "/api/search");
 
         service.resetLimit("user1");
 
-        RateLimitResult result =
-                service.checkLimit("user1", "/api/search");
-
+        RateLimitResult result = service.checkLimit("user1", "/api/search");
         assertTrue(result.isAllowed());
+    }
+
+    @Test
+    void cacheRefreshesAfterRuleChange() {
+        RateLimitResult initial = service.checkLimit("user1", "/api/cache");
+        assertEquals(100, initial.getCapacity());
+
+        ruleEngine.addRule(new RateLimitRule("user1", null, "/api/cache", 3, 0, 1));
+
+        RateLimitResult updated = service.checkLimit("user1", "/api/cache");
+        assertEquals(3, updated.getCapacity());
     }
 }
