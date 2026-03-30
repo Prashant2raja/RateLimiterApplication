@@ -17,7 +17,11 @@ public class TierController {
 
     @PostMapping("/assign")
     public String assignTier(@RequestBody TierAssignRequest request) {
-        tierService.assignTier(request.getIdentifier(), request.getTier());
+        tierService.assignTier(
+                request.getIdentifier(),
+                request.getTier(),
+                request.getExpiresAtEpochSeconds()
+        );
         return "Tier assigned successfully";
     }
 

@@ -16,6 +16,7 @@ import java.time.Duration;
 @Service
 public class RateLimitService {
 
+    private final TierConfiguration tierConfiguration;
     private final TokenBucketManager tokenBucketManager;
     private final TierService tierService;
     private final RuleEngineService ruleEngineService;
@@ -25,10 +26,12 @@ public class RateLimitService {
             .expireAfterWrite(Duration.ofMinutes(5))
             .build();
 
-    public RateLimitService(TokenBucketManager tokenBucketManager,
+    public RateLimitService(TierConfiguration tierConfiguration,
+                            TokenBucketManager tokenBucketManager,
                             TierService tierService,
                             RuleEngineService ruleEngineService,
                             PerformanceMetricsService performanceMetricsService) {
+        this.tierConfiguration = tierConfiguration;
         this.tokenBucketManager = tokenBucketManager;
         this.tierService = tierService;
         this.ruleEngineService = ruleEngineService;
@@ -86,7 +89,7 @@ public class RateLimitService {
             capacity = rule.getCapacity();
             refillRate = rule.getRefillRate();
         } else {
-            TierConfig config = TierConfiguration.getConfig(tier);
+            TierConfig config = tierConfiguration.getConfig(tier);
             capacity = config.getCapacity();
             refillRate = config.getRefillRate();
         }

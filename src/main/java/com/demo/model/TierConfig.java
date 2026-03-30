@@ -3,7 +3,10 @@ package com.demo.model;
 public class TierConfig {
 
     private long capacity;
-    private double refillRate; 
+    private double refillRate;
+
+    public TierConfig() {
+    }
 
     public TierConfig(long capacity, double refillRate) {
         this.capacity = capacity;
@@ -14,7 +17,15 @@ public class TierConfig {
         return capacity;
     }
 
+    public void setCapacity(long capacity) {
+        this.capacity = capacity;
+    }
+
     public double getRefillRate() {
         return refillRate;
+    }
+
+    public void setRefillRate(double refillRate) {
+        this.refillRate = refillRate;
     }
 }

@@ -1,19 +1,16 @@
-package com.demo.dto;
+package com.demo.model;
 
-import com.demo.model.Tier;
+public class TierAssignment {
 
-public class TierAssignRequest {
-
-    private String identifier;
     private Tier tier;
     private Long expiresAtEpochSeconds;
 
-    public String getIdentifier() {
-        return identifier;
+    public TierAssignment() {
     }
 
-    public void setIdentifier(String identifier) {
-        this.identifier = identifier;
+    public TierAssignment(Tier tier, Long expiresAtEpochSeconds) {
+        this.tier = tier;
+        this.expiresAtEpochSeconds = expiresAtEpochSeconds;
     }
 
     public Tier getTier() {

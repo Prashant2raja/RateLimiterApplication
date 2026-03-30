@@ -1,10 +1,15 @@
 package com.demo.service;
 
+import com.demo.config.TierConfiguration;
 import com.demo.model.RateLimitResult;
 import com.demo.model.RateLimitRule;
 import com.demo.model.Tier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Path;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -12,17 +17,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RateLimitServiceTest {
 
+    @TempDir
+    Path tempDir;
+
     private TokenBucketManager manager;
     private TierService tierService;
     private RuleEngineService ruleEngine;
     private RateLimitService service;
+    private TierConfiguration tierConfiguration;
 
     @BeforeEach
     void setup() {
         manager = new TokenBucketManager();
-        tierService = new TierService();
+        tierService = new TierService(tempDir.resolve("tiers.properties"));
         ruleEngine = new RuleEngineService();
-        service = new RateLimitService(manager, tierService, ruleEngine, new PerformanceMetricsService());
+        tierConfiguration = new TierConfiguration();
+        service = new RateLimitService(
+                tierConfiguration,
+                manager,
+                tierService,
+                ruleEngine,
+                new PerformanceMetricsService()
+        );
     }
 
     @Test
@@ -134,5 +150,21 @@ class RateLimitServiceTest {
 
         RateLimitResult updated = service.checkLimit("user1", "/api/cache");
         assertEquals(3, updated.getCapacity());
+    }
+
+    @Test
+    void expiredTierFallsBackToFree() {
+        tierService.assignTier("user1", Tier.PRO, Instant.now().getEpochSecond() - 5);
+
+        assertEquals(Tier.FREE, tierService.getTier("user1"));
+    }
+
+    @Test
+    void tierAssignmentPersistsAcrossServiceInstances() {
+        tierService.assignTier(" user1 ", Tier.ENTERPRISE, null);
+
+        TierService reloaded = new TierService(tempDir.resolve("tiers.properties"));
+
+        assertEquals(Tier.ENTERPRISE, reloaded.getTier("user1"));
     }
 }

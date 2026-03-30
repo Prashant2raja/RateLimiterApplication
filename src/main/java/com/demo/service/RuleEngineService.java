@@ -47,4 +47,12 @@ public class RuleEngineService {
     public long getVersion() {
         return version.get();
     }
+
+    public List<RateLimitRule> getRules() {
+        return rules.get();
+    }
+
+    public int getRuleCount() {
+        return rules.get().size();
+    }
 }

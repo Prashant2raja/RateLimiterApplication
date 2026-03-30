@@ -1,192 +1,159 @@
-# 🚀 API Rate Limiter Service
+# API Rate Limiter Service
 
-## 📌 Project Overview
+This project implements a token bucket rate limiter in Spring Boot and covers:
 
-This project implements a scalable **API Rate Limiting Service** using the **Token Bucket algorithm**.
+- Phase 1: core token bucket rate limiting
+- Phase 2: multiple subscription tiers
+- Phase 3: high-performance optimization and measurement
 
-It controls how many requests a user / IP / API key can make within a defined rate limit.
+## Implemented Features
 
-The system supports:
+- Token bucket algorithm with atomic operations
+- HTTP `429 Too Many Requests` handling
+- `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers
+- Manual reset endpoint for testing
+- In-memory bucket storage with efficient lookup
+- Tier support: `FREE`, `PRO`, `ENTERPRISE`, `UNLIMITED`
+- Optional tier expiry with automatic fallback to `FREE`
+- Rule engine with identifier, tier, endpoint, and priority matching
+- Status endpoint for runtime health and configuration visibility
+- Performance summary endpoint
+- Unit tests and benchmark test
+- Postman collection
 
-- Tier-based rate limiting (FREE / PRO / ENTERPRISE / UNLIMITED)
-- Per-endpoint rate limiting rules
-- Rule priority handling
-- HTTP 429 responses when limit exceeded
-- Rate limit response headers
-- Unit testing with 10 test cases
+## Endpoints
 
----
+### Status
 
-# ✅ Phase 1 – Core Implementation
+`GET /api/status`
 
-### ✔ Features Implemented
+Returns application status, active rule count, assigned tier count, active buckets, cached policies, and tier configuration.
 
-- Token Bucket algorithm
-- In-memory storage using `ConcurrentHashMap`
-- Separate bucket per identifier + endpoint
-- Thread-safe implementation
-- REST API endpoints:
-  - `POST /api/rate-limit/check`
-  - `POST /api/rate-limit/reset`
-- Returns **HTTP 429 (Too Many Requests)** when limit exceeded
-- Reset endpoint for testing
-- Unit tests
+### Check Rate Limit
 
----
-
-# ✅ Phase 2 – Feature Extensions
-
-## 1️⃣ Multiple Tier Support
-
-- FREE
-- PRO
-- ENTERPRISE
-- UNLIMITED
-
-Each tier has different capacity and refill rate.
-
-✔ Dynamic tier assignment  
-✔ Automatic tier detection during rate check  
-
----
-
-## 2️⃣ Advanced Rules Engine
-
-Supports:
-
-- Per-endpoint rate limits
-- Identifier-specific rules
-- Tier-based rules
-- Rule priority handling
-- Rule override mechanism
-
-Example:
-
-- `/api/search` → 5 requests/sec  
-- `/api/upload` → 2 requests/sec  
-- Specific user override supported  
-
----
-
-# 📊 Rate Limit Headers
-
-Every response includes:
-
-- `X-RateLimit-Limit`
-- `X-RateLimit-Remaining`
-- `X-RateLimit-Reset`
-
-If limit exceeded:
-
-- Returns HTTP 429
-- Headers still included
-
----
-
-# 🛠 Tech Stack
-
-- Java 17  
-- Spring Boot  
-- Maven  
-- JUnit 5  
-- ConcurrentHashMap (In-memory storage)
-
----
-
-# 📁 Project Structure
-
-src
-├── main
-│ └── java
-│ └── com.demo
-│ ├── controller
-│ ├── service
-│ ├── model
-│ ├── config
-│ └── dto
-│
-└── test
-└── java
-└── com.demo.service
-└── RateLimitServiceTest.java
-
-
----
-
-# ▶️ How to Run
-
-Build the project:
-
-
-mvn clean install
-
-
-Run the application:
-
-
-mvn spring-boot:run
-
-
-Application runs on:
-
-
-http://localhost:8080
-
-
----
-
-# 🧪 API Usage
-
-## Check Rate Limit
-
-**POST**
-
-
-/api/rate-limit/check
-
-
-Body:
+`POST /api/rate-limit/check`
 
 ```json
 {
-  "identifier": "user1",
-  "endpoint": "/api/search"
+  "identifier": "demoUser",
+  "endpoint": "/api/demo"
 }
-Reset Rate Limit
+```
 
-POST
+### Reset Rate Limit
 
-/api/rate-limit/reset
+`POST /api/rate-limit/reset`
 
-Body:
-
+```json
 {
-  "identifier": "user1"
+  "identifier": "demoUser",
+  "endpoint": "/api/demo"
 }
-🧪 Run Tests
-mvn test
+```
 
-✔ 10 Unit Test Cases Implemented
-✔ Rule override tested
-✔ Tier fallback tested
-✔ Endpoint isolation tested
-✔ Reset functionality tested
-✔ Rule priority handling tested
+### Assign Tier
 
-⚙️ Performance Notes
+`POST /api/tier/assign`
 
-O(1) lookup using ConcurrentHashMap
+```json
+{
+  "identifier": "demoUser",
+  "tier": "PRO",
+  "expiresAtEpochSeconds": null
+}
+```
 
-Thread-safe TokenBucket
+If `expiresAtEpochSeconds` is set to a future Unix timestamp, the tier automatically downgrades to `FREE` after expiry.
 
-Endpoint-based bucket isolation
+### Get Tier
 
-Lightweight and extensible
+`GET /api/tier/demoUser`
 
-Ready for Redis-based distributed extension (Phase 3)
+### Add Rule
 
-📌 Status
+`POST /api/rule/add`
 
-✔ Phase 1 Completed
-✔ Phase 2 Completed
+```json
+{
+  "identifier": "demoUser",
+  "tier": "PRO",
+  "endpoint": "/api/demo",
+  "capacity": 2,
+  "refillRate": 1,
+  "priority": 1
+}
+```
 
+### List Rules
+
+`GET /api/rule`
+
+### Performance Summary
+
+`GET /api/performance/summary`
+
+## Default Tier Limits
+
+Configured in [application.properties](src/main/resources/application.properties):
+
+- `FREE`: `100` tokens, refill `100/hour`
+- `PRO`: `1000` tokens, refill `1000/hour`
+- `ENTERPRISE`: `5000` tokens, refill `5000/hour`
+- `UNLIMITED`: effectively unlimited
+
+## How To Run
+
+Run tests:
+
+```powershell
+./mvnw.cmd clean test
+```
+
+Run the application:
+
+```powershell
+./mvnw.cmd spring-boot:run
+```
+
+Base URL:
+
+```text
+http://localhost:8080
+```
+
+## Postman
+
+Import:
+
+[`postman/RateLimiter.postman_collection.json`](postman/RateLimiter.postman_collection.json)
+
+Suggested execution order:
+
+1. `Status`
+2. `Assign Tier`
+3. `Get Tier`
+4. `Add Rule`
+5. `List Rules`
+6. `Check Rate Limit`
+7. `Reset Rate Limit`
+8. `Performance Summary`
+
+## Tests Included
+
+- basic request allowance
+- rule-based blocking
+- reset behavior
+- endpoint isolation
+- user isolation
+- tier fallback
+- remaining token tracking
+- rule priority handling
+- cache refresh after rule changes
+- benchmark comparison for token bucket implementations
+
+## Performance Assets
+
+- [load-tests/rate-limit.js](load-tests/rate-limit.js)
+- [docs/benchmark-results.md](docs/benchmark-results.md)
+- [docs/profiling-analysis.md](docs/profiling-analysis.md)
+- [docs/phase3-performance.md](docs/phase3-performance.md)

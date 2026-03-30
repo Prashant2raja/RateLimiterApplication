@@ -19,4 +19,9 @@ public class RuleController {
         ruleEngineService.addRule(rule);
         return "Rule added successfully";
     }
+
+    @GetMapping
+    public java.util.List<RateLimitRule> listRules() {
+        return ruleEngineService.getRules();
+    }
 }

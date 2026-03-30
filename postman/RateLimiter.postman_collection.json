@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "Rate Limiter Demo",
+    "_postman_id": "8fb8d4e8-d0cb-4aa0-b459-7b42d57c99d8",
+    "description": "Phase 1-3 verification flow for the token bucket rate limiter service.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/status"
+      }
+    },
+    {
+      "name": "Assign Tier",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"demoUser\",\n  \"tier\": \"PRO\",\n  \"expiresAtEpochSeconds\": null\n}"
+        },
+        "url": "{{baseUrl}}/api/tier/assign"
+      }
+    },
+    {
+      "name": "Get Tier",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/tier/demoUser"
+      }
+    },
+    {
+      "name": "Add Rule",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"demoUser\",\n  \"tier\": \"PRO\",\n  \"endpoint\": \"/api/demo\",\n  \"capacity\": 2,\n  \"refillRate\": 1,\n  \"priority\": 1\n}"
+        },
+        "url": "{{baseUrl}}/api/rule/add"
+      }
+    },
+    {
+      "name": "List Rules",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/rule"
+      }
+    },
+    {
+      "name": "Check Rate Limit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"demoUser\",\n  \"endpoint\": \"/api/demo\"\n}"
+        },
+        "url": "{{baseUrl}}/api/rate-limit/check"
+      }
+    },
+    {
+      "name": "Reset Rate Limit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"demoUser\",\n  \"endpoint\": \"/api/demo\"\n}"
+        },
+        "url": "{{baseUrl}}/api/rate-limit/reset"
+      }
+    },
+    {
+      "name": "Performance Summary",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/performance/summary"
+      }
+    }
+  ]
+}
