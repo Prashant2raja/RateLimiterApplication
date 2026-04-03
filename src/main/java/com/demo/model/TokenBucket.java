@@ -26,7 +26,7 @@ public class TokenBucket {
                 : (refillRate * TOKEN_SCALE) / TimeUnit.SECONDS.toNanos(1);
         this.availableTokens = new AtomicLong(capacityScaled);
         this.lastRefillNanos = new AtomicLong(System.nanoTime());
-    }
+    } 
 
     public boolean tryConsume() {
         if (unlimited) {
